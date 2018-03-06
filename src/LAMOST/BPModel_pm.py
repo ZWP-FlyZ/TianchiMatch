@@ -20,7 +20,7 @@ import time;
 
 
 def act_func(X):
-    return tf.tanh(X);
+    return tf.nn.relu(X);
 
 # 特征数，输入张量的shape
 feature_size = 2600;
@@ -29,13 +29,15 @@ label_size = 4;
 # 隐层数和各个层节点数
 hiddens = [128,32];
 
-steps = 3000;
-batch_size = 40;
-learn_rate = 0.002;
+steps = 4000;
+batch_size = 30;
+learn_rate = 0.0007;
 learn_rate_decy = 0.96;
 
+need_regular=True;
 regular_lambda = 0.01;
 
+need_val_avage=False;
 move_avage_rate = 0.9999;
 
 model_save_path = 'value_cache/model_p.ckpt'
@@ -52,7 +54,7 @@ def get_weight_variable(shape,regularizer=None):
     '''
     weights = tf.get_variable('weights',
                                 shape,
-                                initializer=tf.truncated_normal_initializer( stddev=0.1));
+                                initializer=tf.truncated_normal_initializer( stddev=0.05));
     if regularizer != None:
         tf.add_to_collection('losses', regularizer(weights));
     return weights;
@@ -67,7 +69,7 @@ def get_inference(X,act_func,regularizer):
         weights = get_weight_variable([feature_size,hiddens[0]],regularizer);
         biase   =  tf.get_variable('biase1',
                                 [hiddens[0]],
-                                initializer=tf.truncated_normal_initializer( stddev=0.1));
+                                initializer=tf.truncated_normal_initializer( stddev=0.05));
         layer   = act_func(tf.matmul(X,weights)+biase);
     for lay_num in range(1,lay_cot):
         var_name = 'hidden_layer%d'%(lay_num+1);
@@ -75,7 +77,7 @@ def get_inference(X,act_func,regularizer):
             weights = get_weight_variable([hiddens[lay_num-1],hiddens[lay_num]],regularizer);
             biase   =  tf.get_variable('biase%d'%(lay_num+1),
                                 [hiddens[lay_num]],
-                                initializer=tf.truncated_normal_initializer( stddev=0.1));
+                                initializer=tf.truncated_normal_initializer( stddev=0.05));
             layer   = act_func(tf.matmul(layer,weights)+biase);
     
     # 输出层设计
@@ -83,7 +85,7 @@ def get_inference(X,act_func,regularizer):
         weights = get_weight_variable([hiddens[lay_cot-1],label_size],regularizer);
         biase   =      tf.get_variable('biase_out',
                                 [label_size],
-                                initializer=tf.truncated_normal_initializer( stddev=0.1));
+                                initializer=tf.truncated_normal_initializer( stddev=0.05));
         layer   = tf.matmul(layer,weights)+biase;    
             
     return layer
@@ -97,26 +99,42 @@ def train(datasource):
     X = tf.placeholder(tf.float32, [None,feature_size], 'X');
     Y = tf.placeholder(tf.float32, [None,label_size], 'Y');
     
-    regularizer = tf.contrib.layers.l2_regularizer(regular_lambda);
-    py = get_inference(X, act_func, regularizer);
     
     global_step = tf.Variable(0,trainable=False,name='gs');
     data_size = datasource.data_size();
+    
+    # 正则处理
+    if need_regular: 
+        regularizer = tf.contrib.layers.l2_regularizer(regular_lambda);
+        py = get_inference(X, act_func, regularizer);
+    else:
+        py = get_inference(X, act_func, None);
+    
+
+    
     # 滑动平均
-    variable_avage = tf.train.ExponentialMovingAverage(move_avage_rate,global_step);
-    variable_avage_op = variable_avage.apply(tf.trainable_variables());
+    if need_regular:
+        variable_avage = tf.train.ExponentialMovingAverage(move_avage_rate,global_step);
+        variable_avage_op = variable_avage.apply(tf.trainable_variables());
+        
     # 损失函数
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y, logits=py));
-    loss = loss + tf.add_n(tf.get_collection('losses'));
+    regloss = tf.get_collection('losses');
+    if len(regloss)!=0:
+        loss = loss + tf.add_n(regloss);
     # 递减学习率
     lr = tf.train.exponential_decay(learn_rate, global_step,
-                                    data_size/batch_size,
-                                    # 200,
-                                    learn_rate_decy);
+                                    # data_size/batch_size,
+                                    200,
+                                    learn_rate_decy,
+                                    staircase=True);
     
     # 优化训练过程
     train_step = tf.train.AdamOptimizer(lr).minimize(loss,global_step=global_step);
-    train_op = tf.group(train_step,variable_avage_op);
+    if need_regular:
+        train_op = tf.group(train_step,variable_avage_op);
+    else:
+        train_op = train_step;
     
     saver = tf.train.Saver();
     with tf.Session() as sess:
@@ -187,6 +205,18 @@ def evel(datasource):
     print('all=%d true=%d err=%d pr=%.2f%%,macro_f1=%.3f'%(data_size,data_size-err,err,err*100.0/data_size,macro_f1));
     return py;    
 
+########################## 计算部分 #######################
+
+def calculate(datasource):
+    X = tf.placeholder(tf.float32, [None,feature_size]);
+    py = get_inference(X, act_func,None);
+    py = tf.nn.softmax(py, axis=1);
+    saver = tf.train.Saver();
+    with tf.Session() as sess:
+        saver.restore(sess, model_save_path);
+        xs = datasource.getAllDataX();
+        py = sess.run(py,{X:xs});
+    return py;
 
 
 
@@ -216,14 +246,14 @@ def run():
     print('开始测评')
     evel(train_ds);
     
-#     if need_result_out:
-#         print('\n开始加载比赛数据集')
-#         result_ds=DataSource.DataSource(result_test_index,result_test_data_zip);
-#         indexids=result_ds.getAllIndexID();
-#         print('计算比赛数据')
-#         py=model.cal_py_out(result_ds);
-#         print('创建比赛文件')
-#         DataSetProcess.create_result_csv(indexids, py, result_test_out_path);
+    if need_result_out:
+        print('\n开始加载比赛数据集')
+        result_ds=DataSource.DataSource(result_test_index,result_test_data_zip);
+        indexids=result_ds.getAllIndexID();
+        print('计算比赛数据')
+        py=calculate(result_ds);
+        print('创建比赛文件')
+        DataSetProcess.create_result_csv(indexids, py, result_test_out_path);
     
     
     pass;

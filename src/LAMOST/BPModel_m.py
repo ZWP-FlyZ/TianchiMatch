@@ -131,8 +131,8 @@ steps = 3000;
 batch_size = 30;
 
 load_values=False;
-need_train=True;
-need_result_out=False
+need_train=False;
+need_result_out=True
 rou = 0.05;
 def act_func(X):
     return tf.nn.relu(X);

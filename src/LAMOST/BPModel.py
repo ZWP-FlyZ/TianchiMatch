@@ -82,7 +82,7 @@ class BPModel():
                 sess.run(tf.global_variables_initializer());
             now = time.time();
             for i in range(steps):
-                start = (i*data_size) % data_size;
+                start = (i*batch_size) % data_size;
                 end = min(start+batch_size,data_size);
                 xs,ys = datasource.getDataXY(start,end);
                 _,loss,py,y=sess.run((train_step,self.loss,self.py,self.Y),{self.X:xs,self.Y:ys});
@@ -126,7 +126,7 @@ label_size = 4;
 hidden_size = (128,32);
 
 learn_rate = 0.0007;
-steps = 8000;
+steps = 3000;
 batch_size = 30;
 
 load_values=False;

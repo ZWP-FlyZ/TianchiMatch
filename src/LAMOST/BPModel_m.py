@@ -64,7 +64,7 @@ class BPModel():
         reg = tf.contrib.layers.l2_regularizer(.01);
         train_loss = train_loss + reg(W1);
         train_loss = train_loss + reg(W2);
-#         train_loss = train_loss + reg(W3);
+        train_loss = train_loss + reg(W3);
 #         train_loss = train_loss + tf.contrib.layers.l2_regularizer(.01)(W3);
         self.py = tf.nn.softmax(out_line_real);
         return train_loss;
@@ -83,7 +83,7 @@ class BPModel():
                 sess.run(tf.global_variables_initializer());
             now = time.time();
             for i in range(steps):
-                start = (i*data_size) % data_size;
+                start = (i*batch_size) % data_size;
                 end = min(start+batch_size,data_size);
                 xs,ys = datasource.getDataXY(start,end);
                 _,loss,py,y=sess.run((train_step,self.loss,self.py,self.Y),{self.X:xs,self.Y:ys});
@@ -126,13 +126,13 @@ feature_size = 2600;
 label_size = 4;
 hidden_size = (128,32);
 
-learn_rate = 0.002;
-steps = 2000;
-batch_size = 40;
+learn_rate = 0.0007;
+steps = 3000;
+batch_size = 30;
 
 load_values=False;
-need_train=False;
-need_result_out=True
+need_train=True;
+need_result_out=False
 rou = 0.05;
 def act_func(X):
     return tf.nn.relu(X);

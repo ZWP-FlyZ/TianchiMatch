@@ -217,10 +217,10 @@ test_set_out_path = base_path+r'/index_test.csv';
 
 
 
-split_precent=[7000/442969.0, # star=6000 
+split_precent=[4000/442969.0, # star=6000 
                4000/5231.0, # galaxy=4700
-               1270/1363.0, # qso=1220 * 3=3600
-               8000/34288.0#unknown=1000
+               1200/1363.0, # qso=1220 * 3=3600
+               3000/34288.0#unknown=1000
                ];
 
 def run():
@@ -239,15 +239,15 @@ def run():
     random_merge([train_tmp2_path,cut_target_set_out_paths[2]],train_set_out_path);# add qso [6000,4700,3600,3000]
     
     
-    random_spliter(class_spilter_out_paths[0],1300/442969.0,# 2000
+    random_spliter(class_spilter_out_paths[0],4000/442969.0,# 2000
                        star_test_tmp_path,None);# 
-    random_spliter(cut_left_set_out_paths[3],1000/34288.0,# 1000
+    random_spliter(cut_left_set_out_paths[3],4000/34288.0,# 1000
                        uk_test_tmp_paht,None);
 
-    random_spliter(class_spilter_out_paths[2],1000/1363.0,# 2000
+    random_spliter(class_spilter_out_paths[2],1300/1363.0,# 2000
                        cut_left_set_out_paths[2],None);# 
                        
-    random_spliter(cut_left_set_out_paths[1],0.45,# c从剩下的galaxy 中获取
+    random_spliter(cut_left_set_out_paths[1],0.9,# c从剩下的galaxy 中获取
                        train_tmp_path,None);#    
     
     test_paths=[star_test_tmp_path,

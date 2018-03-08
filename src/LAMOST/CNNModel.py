@@ -70,20 +70,20 @@ fc_hiddens = [128,32];
 
 
 
-steps = 5000;
-batch_size = 30;
+steps = 2000;
+batch_size = 20;
 learn_rate = 0.001;
 learn_rate_decy = 0.96;
 
 need_regular=True;
 regular_lambda = 0.01;
 
-need_val_avage=False;
-move_avage_rate = 0.9999;
+need_val_avage=True;
+move_avage_rate = 0.999;
 
 model_save_path = 'value_cache/model_cnn.ckpt'
 
-load_value = False;
+load_value = True;
 need_train=False;
 need_result_out=True;
 ########################## 模型部分 #######################
@@ -267,8 +267,8 @@ def train(datasource):
         loss = loss + tf.add_n(regloss);
     # 递减学习率
     lr = tf.train.exponential_decay(learn_rate, global_step,
-                                    # data_size/batch_size,
-                                    200,
+                                    data_size/batch_size,
+                                    # 200,
                                     learn_rate_decy,
                                     staircase=True);
     

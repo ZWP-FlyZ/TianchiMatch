@@ -36,7 +36,7 @@ cnn_input_deep=1;
 
 # 卷积层1过滤器尺寸和深度
 # 该过滤器步长为1，无填充
-conv1_size=5;
+conv1_size=3;
 conv1_deep=8;
 conv1_step=1;
 
@@ -47,25 +47,25 @@ pool1_step=2;
 
 # 卷积层2过滤器尺寸和深度
 # 该过滤器步长为1，无填充
-conv2_size=5;
+conv2_size=3;
 conv2_deep=16;
 conv2_step=1;
 
 # 池化层2过滤器尺寸和深度
-# 该过滤器步长2,无填充
+# 该过滤器步长2,0填充
 pool2_size=2;
 pool2_step=2
 
 
 # 卷积层3过滤器尺寸和深度
 # 该过滤器步长为2，无填充
-conv3_size=2;
+conv3_size=3;
 conv3_deep=32;
-conv3_step=2;
+conv3_step=3;
 
 
 # 全连接层隐层数与节点数
-fc_hiddens = [128,16];
+fc_hiddens = [256,32];
 
 
 
@@ -81,7 +81,7 @@ regular_lambda = 0.01;
 need_val_avage=True;
 move_avage_rate = 0.999;
 
-model_save_path = 'value_cache/model_cnn.ckpt'
+model_save_path = 'value_cache/model_cnn2.ckpt'
 
 load_value = False;
 need_train=True;
@@ -106,11 +106,7 @@ def get_inference(X,act_func,regularizer):
     定义模型函数
     '''
     '''    
-        # 卷积层1过滤器尺寸和深度
-        # 该过滤器步长为1，无填充
-        conv1_size=5;
-        conv1_deep=8;
-        conv1_step=1;
+
     '''
     with tf.variable_scope('layer1-conv1',reuse=tf.AUTO_REUSE):
         con_shape=[conv1_size,conv1_size,cnn_input_deep,conv1_deep];
@@ -123,10 +119,7 @@ def get_inference(X,act_func,regularizer):
         conv_out=act_func(tf.nn.bias_add(conv,conv_biases));
 
     '''    
-        # 池化层1过滤器尺寸和深度
-        # 该过滤器步长2,0填充
-        pool1_size=2;
-        pool1_step=2;
+
     '''    
     with tf.variable_scope('layer2-pool1',reuse=tf.AUTO_REUSE):
         pool_out = tf.nn.max_pool(conv_out, 
@@ -135,11 +128,7 @@ def get_inference(X,act_func,regularizer):
                                     padding='SAME');
     
     '''    
-        # 卷积层2过滤器尺寸和深度
-        # 该过滤器步长为1，无填充
-        conv2_size=5;
-        conv2_deep=16;
-        conv2_step=1;
+
     '''
     with tf.variable_scope('layer3-conv2',reuse=tf.AUTO_REUSE):
         con_shape=[conv2_size,conv2_size,conv1_deep,conv2_deep];
@@ -153,24 +142,17 @@ def get_inference(X,act_func,regularizer):
         
 
     '''    
-        # 池化层2过滤器尺寸和深度
-        # 该过滤器步长2,无填充
-        pool2_size=2;
-        pool1_step=2
+
     '''    
     with tf.variable_scope('layer4-pool2',reuse=tf.AUTO_REUSE):
         pool_out = tf.nn.max_pool(conv_out, 
                                    ksize=[1,pool2_size,pool2_size,1],
                                     strides=[1,pool2_step,pool2_step,1], 
-                                    padding='VALID');
+                                    padding='SAME');
 
 
     '''    
-        # 卷积层3过滤器尺寸和深度
-        # 该过滤器步长为2，无填充
-        conv3_size=2;
-        conv3_deep=32;
-        conv3_step=2;
+
     '''
     with tf.variable_scope('layer5-conv3',reuse=tf.AUTO_REUSE):
         con_shape=[conv3_size,conv3_size,conv2_deep,conv3_deep];
@@ -187,7 +169,7 @@ def get_inference(X,act_func,regularizer):
 
     tmp_shape = conv_out.get_shape().as_list();
     fc_input_size=tmp_shape[1]*tmp_shape[2]*tmp_shape[3];
-#     print('fc_input_size=',fc_input_size);
+    print('fc_input_size=',fc_input_size);
     fc_x = tf.reshape(conv_out,[-1,fc_input_size]);
     fc_layer_cot = len(fc_hiddens);
     

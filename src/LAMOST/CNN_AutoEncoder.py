@@ -77,7 +77,7 @@ fc_hiddens = [128,32];
 
 
 
-steps = 10000;
+steps = 16000;
 batch_size = 20;
 learn_rate = 0.01;
 learn_rate_decy = 0.96;
@@ -119,8 +119,10 @@ def get_autoencoder_inference(X,act_func,regularizer):
         
     with tf.variable_scope('ae-layer-out',reuse=tf.AUTO_REUSE):
         weight=get_weight_variable([ae_hiddens[0],feature_size],regularizer);
-
-        out = act_func(tf.matmul(out,weight));    
+        biase   =      tf.get_variable('biases',
+                                [feature_size],
+                                initializer=tf.truncated_normal_initializer( stddev=0.05));
+        out = act_func(tf.matmul(out,weight)+biase);    
     
     
     return out;

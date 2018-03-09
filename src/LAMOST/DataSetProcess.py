@@ -219,10 +219,10 @@ test_set_out_path = base_path+r'/index_test.csv';
 
 
 
-split_precent=[4000/442969.0, # star=6000 
-               4000/5231.0, # galaxy=4700
-               1200/1363.0, # qso=1220 * 3=3600
-               4000/34288.0#unknown=1000
+split_precent=[1000/442969.0, # star=6000 
+               1000/5231.0, # galaxy=4700
+               100/1363.0, # qso=1220 * 3=3600
+               10000/34288.0#unknown=1000
                ];
 
 def run():

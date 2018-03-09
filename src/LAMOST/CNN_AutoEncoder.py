@@ -24,10 +24,17 @@ import time;
 def act_func(X):
     return tf.nn.relu(X);
 
+def act_func_ae(X):
+    return tf.tanh(X);
+
 # 特征数，输入张量的shape
 feature_size = 2600;
 # 标签数，输出张量的shape
 label_size = 4;
+
+# 自编码器隐层输出
+ae_hiddens=[625];
+
 
 # 输入向量调整，尺寸
 cnn_input_size=int(np.ceil(np.sqrt(feature_size)));
@@ -70,22 +77,23 @@ fc_hiddens = [128,32];
 
 
 
-steps = 15000;
-batch_size = 30;
-learn_rate = 0.001;
+steps = 10000;
+batch_size = 20;
+learn_rate = 0.01;
 learn_rate_decy = 0.96;
 
-need_regular=True;
+need_regular=False;
 regular_lambda = 0.01;
 
-need_val_avage=True;
+need_val_avage=False;
 move_avage_rate = 0.999;
 
-model_save_path = 'value_cache/model_cnn.ckpt'
+model_save_path = 'value_cache/model_cnn_ae.ckpt'
+autoe_save_path = 'value_cache/model_cnn_ae.ckpt'
 
 load_value = False;
-need_train=False;
-need_result_out=True;
+need_train=True;
+need_result_out=False;
 ########################## 模型部分 #######################
 
 def get_weight_variable(shape,regularizer=None):
@@ -99,6 +107,28 @@ def get_weight_variable(shape,regularizer=None):
     if regularizer != None:
         tf.add_to_collection('losses', regularizer(weights));
     return weights;
+
+def get_autoencoder_inference(X,act_func,regularizer):
+    
+    with tf.variable_scope('ae-layer-in',reuse=tf.AUTO_REUSE):
+        weight=get_weight_variable([feature_size,ae_hiddens[0]],regularizer);
+        biase   =      tf.get_variable('biases',
+                                [ae_hiddens[0]],
+                                initializer=tf.truncated_normal_initializer( stddev=0.05));
+        out = act_func(tf.matmul(X,weight)+biase);
+        
+    with tf.variable_scope('ae-layer-out',reuse=tf.AUTO_REUSE):
+        weight=get_weight_variable([ae_hiddens[0],feature_size],regularizer);
+
+        out = act_func(tf.matmul(out,weight));    
+    
+    
+    return out;
+
+
+
+
+
 
 # 定义模型函数，
 def get_inference(X,act_func,regularizer):
@@ -238,6 +268,70 @@ def change_to_cnn_input(x):
 ########################## 训练部分 #######################
 
 
+def train_ae(datasource):
+    X = tf.placeholder(tf.float32, [None,feature_size], 'X');
+    Y = tf.placeholder(tf.float32, [None,feature_size], 'Y');
+
+    global_step = tf.Variable(0,trainable=False,name='gs-ae');
+    data_size = datasource.data_size();
+    
+    # 正则处理
+    if need_regular: 
+        regularizer = tf.contrib.layers.l2_regularizer(regular_lambda);
+        py = get_autoencoder_inference(X, act_func_ae, regularizer);
+    else:
+        py = get_autoencoder_inference(X, act_func_ae, None);
+    
+
+    
+    # 滑动平均
+    if need_regular:
+        variable_avage = tf.train.ExponentialMovingAverage(move_avage_rate,global_step);
+        variable_avage_op = variable_avage.apply(tf.trainable_variables());
+        
+    # 损失函数
+    loss = tf.reduce_mean((Y-py)**2);
+    regloss = tf.get_collection('losses');
+    if len(regloss)!=0:
+        loss = loss + tf.add_n(regloss);
+    # 递减学习率
+    lr = tf.train.exponential_decay(learn_rate, global_step,
+                                    data_size/batch_size,
+                                    # 200,
+                                    learn_rate_decy,
+                                    staircase=True);
+    
+    # 优化训练过程
+    train_step = tf.train.GradientDescentOptimizer(lr).minimize(loss,global_step=global_step);
+    if need_regular:
+        train_op = tf.group(train_step,variable_avage_op);
+    else:
+        train_op = train_step;
+    
+    saver = tf.train.Saver();
+    with tf.Session() as sess:
+        if load_value:
+            saver.restore(sess, model_save_path);
+        else:
+            sess.run(tf.global_variables_initializer());
+        now = time.time();
+        for i in range(steps):
+            start = (i*batch_size) % data_size;
+            end = min(start+batch_size,data_size);
+            xs = datasource.getDataX(start,end);
+            _,lossv,pyv,yv,step = sess.run([train_op,loss,py,Y,global_step],{X:xs,Y:xs});
+            if step%100==0:
+                print('step=%d loss=%.5f time=%.2f'%(step,lossv,time.time()-now));
+                now = time.time();
+        saver.save(sess,model_save_path);
+    print('finished!');                   
+
+
+def next_train(datasource):
+    
+    pass;    
+    
+    
 def train(datasource):
     X = tf.placeholder(tf.float32, [None,cnn_input_size,cnn_input_size,cnn_input_deep], 'X');
     Y = tf.placeholder(tf.float32, [None,label_size], 'Y');
@@ -395,11 +489,11 @@ def run():
     train_ds = DataSource.DataSource(train_data_index,train_data_zip);
     if need_train:
         print('\n开始训练')
-        train(train_ds,);
-    print('\n开始测试')
-    train_ds.reload_index(test_data_index);
-    print('开始测评')
-    evel(train_ds);
+        train_ae(train_ds,);
+#     print('\n开始测试')
+#     train_ds.reload_index(test_data_index);
+#     print('开始测评')
+#     evel(train_ds);
     
     if need_result_out:
         print('\n开始加载比赛数据集')

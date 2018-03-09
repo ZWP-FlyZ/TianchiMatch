@@ -180,6 +180,97 @@ def random_merge(origin_pathes,out_path):
         merge_in_fs[i].close();
     print('random_merge finished! cot=%d'%(cot));
 
+def random_merge_for_uk_type(origin_pathes,out_path):
+    f_cot = len(origin_pathes);
+    merge_in_fs = [];
+    merge_in_origin=[];
+    flags=[];
+    csv_sizes=[];
+    cot=0;
+    merge_out_f = open(out_path,'w');
+    for i in range(f_cot):
+        csv_sizes.append(csv_size(origin_pathes[i]));
+        merge_in_fs.append(open(origin_pathes[i]));
+        flags.append(True);
+    merge_out = csv.writer(merge_out_f);
+    merge_in_origin.append(csv.reader(merge_in_fs[0]));
+    merge_out.writerow(next(merge_in_origin[0]));
+    for i in range(1,f_cot):
+        merge_in_origin.append(csv.reader(merge_in_fs[i]));
+        next(merge_in_origin[i])
+    
+    rdlist=get_rdlist_by_sizelist(csv_sizes);
+    
+    while True:
+        f = get_random_id(rdlist);
+        if flags[f]:
+            try:
+                it = next(merge_in_origin[f]);
+                if it[1]=='3' or it[1]==3:
+                    merge_out.writerow(it);
+                else:
+                    it[1]='0';
+                    merge_out.writerow(it);
+                cot+=1;
+            except StopIteration:
+                flags[f]= False;           
+        tf=True;
+        for i in range(f_cot):
+            if flags[i]:
+                tf=False;
+                continue;
+        if tf:break;
+        
+    merge_out_f.close();    
+    for i in range(f_cot):
+        merge_in_fs[i].close();
+    print('random_merge_for_uk_type finished! cot=%d'%(cot));
+
+
+def random_merge_for_o3_type(origin_pathes,out_path):
+    f_cot = len(origin_pathes);
+    merge_in_fs = [];
+    merge_in_origin=[];
+    flags=[];
+    csv_sizes=[];
+    cot=0;
+    merge_out_f = open(out_path,'w');
+    for i in range(f_cot):
+        csv_sizes.append(csv_size(origin_pathes[i]));
+        merge_in_fs.append(open(origin_pathes[i]));
+        flags.append(True);
+    merge_out = csv.writer(merge_out_f);
+    merge_in_origin.append(csv.reader(merge_in_fs[0]));
+    merge_out.writerow(next(merge_in_origin[0]));
+    for i in range(1,f_cot):
+        merge_in_origin.append(csv.reader(merge_in_fs[i]));
+        next(merge_in_origin[i])
+    
+    rdlist=get_rdlist_by_sizelist(csv_sizes);
+    
+    while True:
+        f = get_random_id(rdlist);
+        if flags[f]:
+            try:
+                it = next(merge_in_origin[f]);
+                if not it[1] == '3' :
+                    merge_out.writerow(it);
+                    cot+=1;
+            except StopIteration:
+                flags[f]= False;           
+        tf=True;
+        for i in range(f_cot):
+            if flags[i]:
+                tf=False;
+                continue;
+        if tf:break;
+        
+    merge_out_f.close();    
+    for i in range(f_cot):
+        merge_in_fs[i].close();
+    print('random_merge_for_o3_type finished! cot=%d'%(cot));
+
+
 
 
 def create_result_csv(indexIds,py,out_path):
@@ -217,12 +308,16 @@ cut_left_set_out_paths=  [ base_path+r'/index_types_star_lf.csv',
 train_set_out_path = base_path+r'/index_train.csv';
 test_set_out_path = base_path+r'/index_test.csv';
 
+train_set_uk_out_path = base_path+r'/index_train_uk.csv';
+test_set_uk_out_path = base_path+r'/index_test_uk.csv';
 
+train_set_3o_out_path = base_path+r'/index_train_3o.csv';
+test_set_3o_out_path = base_path+r'/index_test_3o.csv';
 
-split_precent=[1000/442969.0, # star=6000 
-               1000/5231.0, # galaxy=4700
-               100/1363.0, # qso=1220 * 3=3600
-               10000/34288.0#unknown=1000
+split_precent=[4000/442969.0, # star=6000 
+               4000/5231.0, # galaxy=4700
+               1300/1363.0, # qso=1220 * 3=3600
+               11000/34288.0#unknown=1000
                ];
 
 def run():
@@ -240,6 +335,8 @@ def run():
     random_merge([train_tmp_path,cut_target_set_out_paths[2]],train_tmp2_path);# add qso [6000,4700,2400,3000]
     random_merge([train_tmp2_path,cut_target_set_out_paths[2]],train_set_out_path);# add qso [6000,4700,3600,3000]
     
+    random_merge_for_uk_type([train_tmp2_path,cut_target_set_out_paths[2]],train_set_uk_out_path);
+    random_merge_for_o3_type([train_tmp2_path,cut_target_set_out_paths[2]],train_set_3o_out_path);
     
     random_spliter(class_spilter_out_paths[0],2000/442969.0,# 2000
                        star_test_tmp_path,None);# 
@@ -256,7 +353,9 @@ def run():
                 train_tmp_path,
                 cut_left_set_out_paths[2],
                 uk_test_tmp_paht];
-    random_merge(test_paths,test_set_out_path);# [2000,520,130,1000]
+    random_merge(test_paths,test_set_out_path);
+    random_merge_for_uk_type(test_paths,test_set_uk_out_path);
+    random_merge_for_o3_type(test_paths,test_set_3o_out_path);
     
     pass;
 

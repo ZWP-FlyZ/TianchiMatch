@@ -18,6 +18,7 @@ import  tensorflow as tf;
 import numpy as np;
 from LAMOST import DataSource, DataSetProcess
 from tensorflow.python.framework import graph_util;
+import os;
 import time;
 ########################## 参数    ##########################
 
@@ -71,7 +72,7 @@ fc_hiddens = [128,16];
 
 
 
-steps = 3000;
+steps = 2000;
 batch_size = 30;
 learn_rate = 0.001;
 learn_rate_decy = 0.96;
@@ -238,6 +239,7 @@ def save_graph(sess):
     graph_def = tf.get_default_graph().as_graph_def();
     output_gd = graph_util.convert_variables_to_constants(
         sess,graph_def,['out_layer/add']);
+    os.remove(model_graph_path);
     with tf.gfile.GFile(model_graph_path,'wb') as f:
         f.write(output_gd.SerializeToString());
 

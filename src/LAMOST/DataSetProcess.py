@@ -317,7 +317,7 @@ test_set_3o_out_path = base_path+r'/index_test_3o.csv';
 split_precent=[4000/442969.0, # star=6000 
                4000/5231.0, # galaxy=4700
                1300/1363.0, # qso=1220 * 3=3600
-               11000/34288.0#unknown=1000
+               3000/34288.0#unknown=1000
                ];
 
 def run():
@@ -338,9 +338,9 @@ def run():
     random_merge_for_uk_type([train_tmp2_path,cut_target_set_out_paths[2]],train_set_uk_out_path);
     random_merge_for_o3_type([train_tmp2_path,cut_target_set_out_paths[2]],train_set_3o_out_path);
     
-    random_spliter(class_spilter_out_paths[0],2000/442969.0,# 2000
+    random_spliter(class_spilter_out_paths[0],4000/442969.0,# 2000
                        star_test_tmp_path,None);# 
-    random_spliter(cut_left_set_out_paths[3],2000/34288.0,# 1000
+    random_spliter(cut_left_set_out_paths[3],1000/34288.0,# 1000
                        uk_test_tmp_paht,None);
 
     random_spliter(class_spilter_out_paths[2],1300/1363.0,# 2000

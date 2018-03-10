@@ -84,12 +84,12 @@ move_avage_rate = 0.999;
 
 model_save_path = 'value_cache/model_cnn.ckpt'
 
-model_graph_path = 'value_cache/graph_cnn_3o.pb'
-model_graph_path = 'value_cache/graph_cnn_uk.pb'
+model_3o_graph_path = 'value_cache/graph_cnn_3o.pb'
+model_uk_graph_path = 'value_cache/graph_cnn_uk.pb'
 
 load_value = False;
 need_train=True;
-need_result_out=False;
+need_result_out=True;
 
 
 ########################## 输入转化 #######################
@@ -109,23 +109,40 @@ def change_to_cnn_input(x):
     return cx;
 
 
-def getGraphElement(gfile_path,ele_name):
+def getGraphElement(gfile_path,ele_name,X):
     with gfile.FastGFile(gfile_path,'rb') as f:
         gd = tf.GraphDef();
         gd.ParseFromString(f.read());
-    element = tf.import_graph_def(gd,return_elements=[ele_name]);
+    element = tf.import_graph_def(gd,input_map={'X':X},return_elements=[ele_name]);
     return element;
 
     
 def evel(datasource):
-
+    X = tf.placeholder(tf.float32, [None,cnn_input_size,cnn_input_size,cnn_input_deep], 'X');
     with tf.Session() as sess:
-        _py=getGraphElement(model_graph_path,'out_layer/add:0');
+        py_uk=getGraphElement(model_uk_graph_path,'out_layer/add:0',X);
+        py_uk = tf.nn.softmax(py_uk);
+        py_3o = getGraphElement(model_3o_graph_path,'out_layer/add:0',X);
+        py_3o = tf.nn.softmax(py_3o);
+        data_size = datasource.data_size();
         xs,ys = datasource.getAllData();
         xs = change_to_cnn_input(xs);
-        py = sess.run(_py,{'X':xs});
+        start = 0;
+        cal_step = 1000;
+        py=[];
+        while start<data_size:
+            end = min(start+cal_step,data_size);
+            pyuk,py3o = sess.run([py_uk,py_3o],{X:xs[start:end]});
+            pyuk=pyuk[0];
+            py3o=py3o[0];
+            for line in range(end-start):
+                item=pyuk[line];
+                if item[0]<=item[3]:
+                    py.append(item);
+                else:
+                    py.append(py3o[line]);
+            start+=cal_step;
     
-    data_size = datasource.data_size();
     y = np.array(ys);
     py = np.array(py);
     
@@ -166,24 +183,31 @@ def evel(datasource):
 
 def calculate(datasource):
     X = tf.placeholder(tf.float32, [None,cnn_input_size,cnn_input_size,cnn_input_deep], 'X');
-    py = get_inference(X, act_func,None);
-    py = tf.nn.softmax(py, axis=1);
-    saver = tf.train.Saver();
     with tf.Session() as sess:
-        saver.restore(sess, model_save_path);
+        py_uk =getGraphElement(model_uk_graph_path,'out_layer/add:0',X);
+        py_uk = tf.nn.softmax(py_uk);
+        py_3o = getGraphElement(model_3o_graph_path,'out_layer/add:0',X);
+        py_3o = tf.nn.softmax(py_3o);
+        
         xs = datasource.getAllDataX();
-        xs_size= datasource.data_size();
+        data_size= datasource.data_size();
         start =0;
+        cal_step=100;
         xs = change_to_cnn_input(xs);
-        py_all=[];
-        while start<xs_size:
-            end = min(start+100,xs_size);
-            # print(xs[start:end]);
-            py_ = sess.run(py,{X:xs[start:end]});
-            for i in py_:
-                py_all.append(i); 
-            start+=100;
-    return py_all;
+        py=[];
+        while start<data_size:
+            end = min(start+cal_step,data_size);
+            pyuk,py3o = sess.run((py_uk,py_3o),{X:xs[start:end]});
+            pyuk=pyuk[0];
+            py3o=py3o[0];
+            for line in range(end-start):
+                item=pyuk[line];
+                if item[0]<=item[3]:
+                    py.append(item);
+                else:
+                    py.append(py3o[line]);
+            start+=cal_step;
+    return py;
 
 
 

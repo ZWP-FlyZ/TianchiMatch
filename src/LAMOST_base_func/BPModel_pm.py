@@ -10,8 +10,6 @@ Created on 2018年3月6日
 包括模型，训练，评价
 模型持久化
 
-使用卷积网络来实现
-
 '''
 
 import  tensorflow as tf;
@@ -28,49 +26,10 @@ def act_func(X):
 feature_size = 2600;
 # 标签数，输出张量的shape
 label_size = 4;
+# 隐层数和各个层节点数
+hiddens = [300,80];
 
-# 输入向量调整，尺寸
-cnn_input_size=int(np.ceil(np.sqrt(feature_size)));
-# 输入向量调整，深度
-cnn_input_deep=1;
-
-# 卷积层1过滤器尺寸和深度
-# 该过滤器步长为1，无填充
-conv1_size=5;
-conv1_deep=8;
-conv1_step=1;
-
-# 池化层1过滤器尺寸和深度
-# 该过滤器步长2,0填充
-pool1_size=2;
-pool1_step=2;
-
-# 卷积层2过滤器尺寸和深度
-# 该过滤器步长为1，无填充
-conv2_size=5;
-conv2_deep=16;
-conv2_step=1;
-
-# 池化层2过滤器尺寸和深度
-# 该过滤器步长2,无填充
-pool2_size=2;
-pool2_step=2
-
-
-# 卷积层3过滤器尺寸和深度
-# 该过滤器步长为2，无填充
-conv3_size=2;
-conv3_deep=32;
-conv3_step=2;
-
-
-# 全连接层隐层数与节点数
-fc_hiddens = [128,16];
-
-
-
-
-steps = 15000;
+steps = 5000;
 batch_size = 30;
 learn_rate = 0.001;
 learn_rate_decy = 0.96;
@@ -78,14 +37,14 @@ learn_rate_decy = 0.96;
 need_regular=True;
 regular_lambda = 0.01;
 
-need_val_avage=True;
-move_avage_rate = 0.999;
+need_val_avage=False;
+move_avage_rate = 0.9999;
 
-model_save_path = 'value_cache/model_cnn.ckpt'
+model_save_path = 'value_cache/model_p.ckpt'
 
 load_value = False;
 need_train=False;
-need_result_out=True;
+need_result_out=False;
 ########################## 模型部分 #######################
 
 def get_weight_variable(shape,regularizer=None):
@@ -105,110 +64,25 @@ def get_inference(X,act_func,regularizer):
     '''
     定义模型函数
     '''
-    '''    
-        # 卷积层1过滤器尺寸和深度
-        # 该过滤器步长为1，无填充
-        conv1_size=5;
-        conv1_deep=8;
-        conv1_step=1;
-    '''
-    with tf.variable_scope('layer1-conv1',reuse=tf.AUTO_REUSE):
-        con_shape=[conv1_size,conv1_size,cnn_input_deep,conv1_deep];
-        con_weights=get_weight_variable(con_shape, None);
-        conv_biases=tf.get_variable('biases',[conv1_deep],
-                                     initializer=tf.constant_initializer(0.0));
-        conv = tf.nn.conv2d(X, con_weights, 
-                             strides=[1,conv1_step,conv1_step,1], 
-                             padding='VALID');
-        conv_out=act_func(tf.nn.bias_add(conv,conv_biases));
-
-    '''    
-        # 池化层1过滤器尺寸和深度
-        # 该过滤器步长2,0填充
-        pool1_size=2;
-        pool1_step=2;
-    '''    
-    with tf.variable_scope('layer2-pool1',reuse=tf.AUTO_REUSE):
-        pool_out = tf.nn.max_pool(conv_out, 
-                                   ksize=[1,pool1_size,pool1_size,1],
-                                    strides=[1,pool1_step,pool1_step,1], 
-                                    padding='SAME');
-    
-    '''    
-        # 卷积层2过滤器尺寸和深度
-        # 该过滤器步长为1，无填充
-        conv2_size=5;
-        conv2_deep=16;
-        conv2_step=1;
-    '''
-    with tf.variable_scope('layer3-conv2',reuse=tf.AUTO_REUSE):
-        con_shape=[conv2_size,conv2_size,conv1_deep,conv2_deep];
-        con_weights=get_weight_variable(con_shape, None);
-        conv_biases=tf.get_variable('biases',[conv2_deep],
-                                     initializer=tf.constant_initializer(0.0));
-        conv = tf.nn.conv2d(pool_out, con_weights, 
-                             strides=[1,conv2_step,conv2_step,1], 
-                             padding='VALID');
-        conv_out=act_func(tf.nn.bias_add(conv,conv_biases));   
-        
-
-    '''    
-        # 池化层2过滤器尺寸和深度
-        # 该过滤器步长2,无填充
-        pool2_size=2;
-        pool1_step=2
-    '''    
-    with tf.variable_scope('layer4-pool2',reuse=tf.AUTO_REUSE):
-        pool_out = tf.nn.max_pool(conv_out, 
-                                   ksize=[1,pool2_size,pool2_size,1],
-                                    strides=[1,pool2_step,pool2_step,1], 
-                                    padding='VALID');
-
-
-    '''    
-        # 卷积层3过滤器尺寸和深度
-        # 该过滤器步长为2，无填充
-        conv3_size=2;
-        conv3_deep=32;
-        conv3_step=2;
-    '''
-    with tf.variable_scope('layer5-conv3',reuse=tf.AUTO_REUSE):
-        con_shape=[conv3_size,conv3_size,conv2_deep,conv3_deep];
-        con_weights=get_weight_variable(con_shape, None);
-        conv_biases=tf.get_variable('biases',[conv3_deep],
-                                     initializer=tf.constant_initializer(0.0));
-        conv = tf.nn.conv2d(pool_out, con_weights, 
-                             strides=[1,conv3_step,conv3_step,1], 
-                             padding='VALID');
-        conv_out=act_func(tf.nn.bias_add(conv,conv_biases));
-
-
-
-
-    tmp_shape = conv_out.get_shape().as_list();
-    fc_input_size=tmp_shape[1]*tmp_shape[2]*tmp_shape[3];
-#     print('fc_input_size=',fc_input_size);
-    fc_x = tf.reshape(conv_out,[-1,fc_input_size]);
-    fc_layer_cot = len(fc_hiddens);
-    
-    with tf.variable_scope('layer6-fc1',reuse=tf.AUTO_REUSE):
-        weights = get_weight_variable([fc_input_size,fc_hiddens[0]],regularizer);
+    lay_cot = len(hiddens);
+    with tf.variable_scope('hidden_layer1',reuse=tf.AUTO_REUSE):
+        weights = get_weight_variable([feature_size,hiddens[0]],regularizer);
         biase   =  tf.get_variable('biase1',
-                                [fc_hiddens[0]],
+                                [hiddens[0]],
                                 initializer=tf.truncated_normal_initializer( stddev=0.05));
-        layer   = act_func(tf.matmul(fc_x,weights)+biase);
-    for lay_num in range(1,fc_layer_cot):
-        var_name = 'layer%d-fc%d'%(lay_num+6,lay_num+1);
+        layer   = act_func(tf.matmul(X,weights)+biase);
+    for lay_num in range(1,lay_cot):
+        var_name = 'hidden_layer%d'%(lay_num+1);
         with tf.variable_scope(var_name,reuse=tf.AUTO_REUSE):
-            weights = get_weight_variable([fc_hiddens[lay_num-1],fc_hiddens[lay_num]],regularizer);
+            weights = get_weight_variable([hiddens[lay_num-1],hiddens[lay_num]],regularizer);
             biase   =  tf.get_variable('biase%d'%(lay_num+1),
-                                [fc_hiddens[lay_num]],
+                                [hiddens[lay_num]],
                                 initializer=tf.truncated_normal_initializer( stddev=0.05));
             layer   = act_func(tf.matmul(layer,weights)+biase);
     
     # 输出层设计
     with tf.variable_scope('out_layer',reuse=tf.AUTO_REUSE):
-        weights = get_weight_variable([fc_hiddens[fc_layer_cot-1],label_size],regularizer);
+        weights = get_weight_variable([hiddens[lay_cot-1],label_size],regularizer);
         biase   =      tf.get_variable('biase_out',
                                 [label_size],
                                 initializer=tf.truncated_normal_initializer( stddev=0.05));
@@ -216,30 +90,13 @@ def get_inference(X,act_func,regularizer):
             
     return layer
 
-########################## 输入转化 #######################
-
-def change_to_cnn_input(x):
-    '''
-        将[None,feature_size]的输入转换到
-        [None,cnn_input_size,cnn_input_size,cnn_input_deep]
-        未满的部分用0填补
-    '''
-    x = np.array(x);
-    batchs = x.shape[0];
-    cx=np.zeros([batchs,cnn_input_size*cnn_input_size]);
-    cx[:,0:feature_size]=x;
-    cx = np.reshape(cx,
-                    [-1,cnn_input_size,cnn_input_size,cnn_input_deep]);
-    return cx;
-
-
 
 
 ########################## 训练部分 #######################
 
 
 def train(datasource):
-    X = tf.placeholder(tf.float32, [None,cnn_input_size,cnn_input_size,cnn_input_deep], 'X');
+    X = tf.placeholder(tf.float32, [None,feature_size], 'X');
     Y = tf.placeholder(tf.float32, [None,label_size], 'Y');
     
     
@@ -268,7 +125,7 @@ def train(datasource):
     # 递减学习率
     lr = tf.train.exponential_decay(learn_rate, global_step,
                                     data_size/batch_size,
-                                    # 200,
+                                    #200,
                                     learn_rate_decy,
                                     staircase=True);
     
@@ -290,7 +147,6 @@ def train(datasource):
             start = (i*batch_size) % data_size;
             end = min(start+batch_size,data_size);
             xs,ys = datasource.getDataXY(start,end);
-            xs = change_to_cnn_input(xs);
             _,lossv,pyv,yv,step = sess.run([train_op,loss,py,Y,global_step],{X:xs,Y:ys});
             if step%20==0:
                 print('step=%d loss=%.5f time=%.2f'%(step,lossv,time.time()-now));
@@ -303,14 +159,13 @@ def train(datasource):
 ########################## 测评部分 #######################
     
 def evel(datasource):
-    X = tf.placeholder(tf.float32, [None,cnn_input_size,cnn_input_size,cnn_input_deep], 'X');
+    X = tf.placeholder(tf.float32, [None,feature_size]);
     py = get_inference(X, act_func,None);
     py = tf.nn.softmax(py, axis=1);
     saver = tf.train.Saver();
     with tf.Session() as sess:
         saver.restore(sess, model_save_path);
         xs,ys = datasource.getAllData();
-        xs = change_to_cnn_input(xs);
         py = sess.run(py,{X:xs});
     
     data_size = datasource.data_size();
@@ -353,25 +208,15 @@ def evel(datasource):
 ########################## 计算部分 #######################
 
 def calculate(datasource):
-    X = tf.placeholder(tf.float32, [None,cnn_input_size,cnn_input_size,cnn_input_deep], 'X');
+    X = tf.placeholder(tf.float32, [None,feature_size]);
     py = get_inference(X, act_func,None);
     py = tf.nn.softmax(py, axis=1);
     saver = tf.train.Saver();
     with tf.Session() as sess:
         saver.restore(sess, model_save_path);
         xs = datasource.getAllDataX();
-        xs_size= datasource.data_size();
-        start =0;
-        xs = change_to_cnn_input(xs);
-        py_all=[];
-        while start<xs_size:
-            end = min(start+100,xs_size);
-            # print(xs[start:end]);
-            py_ = sess.run(py,{X:xs[start:end]});
-            for i in py_:
-                py_all.append(i); 
-            start+=100;
-    return py_all;
+        py = sess.run(py,{X:xs});
+    return py;
 
 
 
@@ -384,13 +229,9 @@ test_data_index = base_path+r'/index_test.csv';
 test_data_zip = base_path+r'/first_train_data_20180131.zip';
 
 
-# result_test_index=base_path+r'/first_test_index_20180131.csv';
-# result_test_data_zip=base_path+r'/first_test_data_20180131.zip';
-# result_test_out_path=base_path+r'/test_result.csv';
-
-result_test_index=base_path+r'/first_rank_index_20180307.csv';
-result_test_data_zip=base_path+r'/first_rank_data_20180307.zip';
-result_test_out_path=base_path+r'/test_result_rank.csv';
+result_test_index=base_path+r'/first_test_index_20180131.csv';
+result_test_data_zip=base_path+r'/first_test_data_20180131.zip';
+result_test_out_path=base_path+r'/test_result.csv';
 
 
 def run():

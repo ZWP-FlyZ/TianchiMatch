@@ -85,7 +85,7 @@ model_save_path = 'value_cache/model_cnn.ckpt'
 
 load_value = False;
 need_train=False;
-need_result_out=True;
+need_result_out=False;
 ########################## 模型部分 #######################
 
 def get_weight_variable(shape,regularizer=None):

@@ -132,7 +132,7 @@ batch_size = 30;
 
 load_values=False;
 need_train=False;
-need_result_out=True
+need_result_out=False
 rou = 0.05;
 def act_func(X):
     return tf.nn.relu(X);

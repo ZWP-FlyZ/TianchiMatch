@@ -22,7 +22,7 @@ import time;
 
 
 def act_func(X):
-    return tf.nn.relu(X);
+    return tf.nn.tanh(X);
 
 # 特征数，输入张量的shape
 feature_size = 2600;
@@ -84,7 +84,7 @@ move_avage_rate = 0.999;
 model_save_path = 'value_cache/model_cnn.ckpt'
 
 load_value = False;
-need_train=False;
+need_train=True;
 need_result_out=False;
 ########################## 模型部分 #######################
 

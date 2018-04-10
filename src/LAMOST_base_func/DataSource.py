@@ -29,7 +29,8 @@ class DataSource(object):
         return tmp;
     
     def data_preprocess(self,x):
-        return (x-np.mean(x))/np.std(x);
+        return (x-np.min(x))/(np.max(x)-np.min(x));
+#         return (x-np.mean(x))/np.std(x);
 #         x = np.array(x);
 #         amax=np.max(x);
 #         amin=np.min(x);

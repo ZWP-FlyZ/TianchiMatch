@@ -143,7 +143,8 @@ def evel(py,y):
     return py;
 
 
-base_path=r'/home/zwp/work/Dataset/tianci/LAMOST';
+# base_path=r'/home/zwp/work/Dataset/tianci/LAMOST';
+base_path=r'E:/work/Dataset/tianci/LAMOST';
 train_data_index = base_path+r'/index_train.csv';
 train_data_zip = base_path+r'/first_train_data_20180131.zip';
 

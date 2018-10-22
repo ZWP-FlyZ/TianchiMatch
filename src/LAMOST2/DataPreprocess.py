@@ -38,15 +38,15 @@ def oridata_spiliter():
     unknown有34288（7.08%）
     '''
     
-    train_need={TYPE_STAR:2000,
-                TYPE_GALAXY:1200,
-                TYPE_QSO:1000,
-                TYPE_UNKNOWN:1200};
+    train_need={TYPE_STAR:4000,
+                TYPE_GALAXY:2000,
+                TYPE_QSO:800,
+                TYPE_UNKNOWN:2000};
     
     test_need={TYPE_STAR:500,
-               TYPE_GALAXY:500,
-               TYPE_QSO:300,
-               TYPE_UNKNOWN:300};
+               TYPE_GALAXY:2000,
+               TYPE_QSO:500,
+               TYPE_UNKNOWN:2000};
     
     random_spilter(inited_ori_path,oridata_path,
                    (train_need,test_need));

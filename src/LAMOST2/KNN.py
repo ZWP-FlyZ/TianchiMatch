@@ -16,22 +16,96 @@ from tools import SysCheck
 
 def knn(trian,test,k):
     train_x,train_y = trian;
-    test_x,_ = test;
+    test_x,test_y = test;
     
     
     py = [];
+    
+    # 默认比例
+#     for i in range(len(test_x)):
+#         tx = test_x[i];
+#         delta = np.sum((train_x - tx)**2,axis=1);
+#         topkidx =np.argsort(delta)[:k];
+#         v = np.zeros([4],np.int);
+#         for idx in topkidx:
+#             tmp = train_y[idx];
+#             v[tmp] = v[tmp]+1;
+#         ridx = np.argmax(v);
+#         py.append(ridx);
+#         if i%20==0:
+#             print('step=%d finished!'%i);
+
+#     # 等比缩放 0.723811
+    pv = np.array([88/40,88/20,88/16,88/20],np.float);
+    tpv = k / pv;
+    rec = np.zeros([4]);
     for i in range(len(test_x)):
         tx = test_x[i];
         delta = np.sum((train_x - tx)**2,axis=1);
         topkidx =np.argsort(delta)[:k];
-        v = np.zeros([4],np.int);
+        v = np.zeros([4]);
         for idx in topkidx:
             tmp = train_y[idx];
-            v[tmp] = v[tmp]+1;
+            v[tmp] = v[tmp]+1.0;
+        
+        oriv = v; 
+        v = v*pv / k;
+        
         ridx = np.argmax(v);
+        if v[ridx]==v[-1]:
+            ridx=3;
         py.append(ridx);
+        
+        # 亲近性测试
+        if test_y[i]==3:
+            rec[:3] =rec[:3]+ oriv[:3];
+            rec[3]+=oriv[3];
+        
+        
         if i%20==0:
             print('step=%d finished!'%i);
+            print(v,'->',py[-1],' y->',test_y[i]);
+            print(tpv,oriv);
+            print(rec);
+            print(train_y[topkidx]);
+        
+
+    # 等比缩放-OVM 多分类投票
+#     pv = np.array([48/40,68/20,80/8,68/20],np.float);
+#     for i in range(len(test_x)):
+#         tx = test_x[i];
+#         delta = np.sum((train_x - tx)**2,axis=1);
+#         topkidx =np.argsort(delta)[:k];
+#         v = np.zeros([4]);
+#         for idx in topkidx:
+#             tmp = train_y[idx];
+#             v[tmp] = v[tmp]+1.0;
+#         
+#         oriv = v; 
+#         # 正反类等比变换
+#         kv = k-v;
+#         v = np.divide(v,kv,out=v,where=kv!=0);
+#         v = v*pv;
+#         
+#         
+#         ridx = np.argmax(v); 
+#         res = np.where(v>1.0)[0];
+#         if ridx == 0:
+#             # star 无需考虑
+#             if v[3]>1.0:
+#                 py.append(3);
+#             else:
+#                 py.append(0);
+#         else:
+#             py.append(ridx);
+#             
+#                 
+#         if i%20==0:
+#             print('step=%d finished!'%i);
+#             print(v,'->',py[-1],' y->',test_y[i]);
+
+
+
     return np.array(py);
     
 
@@ -84,7 +158,7 @@ def run():
 #     train_x = tranf2Guass(train_x,0);
 #     test_x = tranf2Guass(test_x,0);
      
-    train_x,test_x = pca(train_x,test_x,1000);     
+    train_x,test_x = pca(train_x,test_x,800);     
     
     
     

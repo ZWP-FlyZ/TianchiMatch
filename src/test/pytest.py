@@ -6,7 +6,8 @@ Created on 2018年3月6日
 '''
 
 import numpy as np;
-
+import tensorflow as tf;
+from tensorflow.keras import 
 # 特征数，输入张量的shape
 feature_size = 4;
 # 标签数，输出张量的shape

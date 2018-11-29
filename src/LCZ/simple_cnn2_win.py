@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-Created on 2018年11月28日
+Created on 2018年11月29日
 
-@author: zwp12
+@author: zwp
 '''
-
-
-
 
 import numpy as np;
 import time;
@@ -70,38 +67,25 @@ def build_model(input_shape):
     model = Model(inputs=in_x,outputs=X);
     return model;    
 
-
 def get_model(input_shape):
     in_x  = Input(input_shape);
     X = Conv2D(32,kernel_size=(3,3),
             strides=(1,1),padding='same',activation='relu',
         kernel_initializer=glorot_uniform(seed=seed))(in_x);
-    X = MaxPool2D(pool_size=(10,2),strides=(10,2))(X);
-    X = Conv2D(32,kernel_size=(3,3),
-            strides=(1,1),padding='same',activation='relu',
-        kernel_initializer=glorot_uniform(seed=seed))(X);
-    X = MaxPool2D(pool_size=(10,2),strides=(10,2))(X);
-
+    X = AveragePooling2D(pool_size=(10,2),strides=(10,2))(X);
      
     X1 = Conv2D(32,kernel_size=(5,5),
             strides=(1,1),padding='same',activation='relu',
             kernel_initializer=glorot_uniform(seed=seed))(in_x);    
-    X1 = MaxPool2D(pool_size=(10,2),strides=(10,2))(X1);
-    X1 = Conv2D(32,kernel_size=(5,5),
-            strides=(1,1),padding='same',activation='relu',
-            kernel_initializer=glorot_uniform(seed=seed))(X1);    
-    X1 = MaxPool2D(pool_size=(10,2),strides=(10,2))(X1);
-
+    X1 = AveragePooling2D(pool_size=(10,2),strides=(10,2))(X1);
 
     X2 = Conv2D(32,kernel_size=(7,7),
             strides=(1,1),padding='same',activation='relu',
             kernel_initializer=glorot_uniform(seed=seed))(in_x);    
-    X2 = MaxPool2D(pool_size=(10,2),strides=(10,2))(X2);
-    X2 = Conv2D(32,kernel_size=(7,7),
-            strides=(1,1),padding='same',activation='relu',
-            kernel_initializer=glorot_uniform(seed=seed))(X2);    
-    X2 = MaxPool2D(pool_size=(10,2),strides=(10,2))(X2);
-    X = concatenate([X,X1,X2],axis=3);
+    X2 = AveragePooling2D(pool_size=(2,2),strides=(2,2))(X1);
+
+    X = concatenate([X,X1],axis=3);
+    
     print(X);
     X = Flatten()(X);
     X = Dense(256,activation='relu')(X);
@@ -111,7 +95,6 @@ def get_model(input_shape):
     X = Dense(17,activation='softmax')(X);
     model = Model(inputs=in_x,outputs=X);
     return model;    
-   
     
 def get_model_sp(input_shape):
     in_x  = Input(input_shape);
@@ -147,6 +130,20 @@ def newReg(X):
         return x/np.mean(x);
     return np.array(list(map(reg_f,X)));
 
+
+def win_reduce(X,win_size=10,step_size=1):
+    def reg(x):
+        start=0;end=0;i=0;
+        tmp=[];
+        while end<x.shape[0]:
+            start=i*step_size;
+            end = min(win_size+start,x.shape[0]);
+            i+=1;
+            tag = np.mean(x[start:end,:],axis=0);
+            tmp.append(tag);    
+        return np.array(tmp);             
+    res = list(map(reg,X));
+    return np.array(res);
 
 def run():
 
@@ -186,34 +183,48 @@ def run():
 #         np.random.shuffle(train_sen1[i]);
 #     for i in range(len(test_sen1)):
 #         np.random.shuffle(test_sen1[i]);    
-        
+    
+    ### 窗口模糊化 
+    win_size=4;
+    step_size=4;
+    print('start win reduce');
+    aft_train_sen = win_reduce(train_sen1,win_size,step_size);
+    aft_test_sen = win_reduce(test_sen1,win_size,step_size);
+
+    
+    aft_train_sen = aft_train_sen.reshape((aft_train_sen.shape[0],
+                            -1,aft_train_sen.shape[2],1));
+    aft_test_sen = aft_test_sen.reshape((aft_test_sen.shape[0],
+                            -1,aft_test_sen.shape[2],1));
+    
     train_sen1 = train_sen1.reshape((train_sen1.shape[0],
                             -1,train_sen1.shape[2],1));
     test_sen1 = test_sen1.reshape((test_sen1.shape[0],
                             -1,test_sen1.shape[2],1));    
     out_sen = out_sen.reshape((out_sen.shape[0],-1,out_sen.shape[3],1));
     
+    
     if False:
         c2_model = keras.models.load_model(model_save_path+'/class127_model.h5');
     else:
-        c2_model = get_model(train_sen1.shape[1:]);
+        c2_model = get_model(aft_test_sen.shape[1:]);
         
     if True:    
         c2_model.compile(optimizer=keras.optimizers.Adagrad(learn_rate[0]), 
                   loss=keras.losses.sparse_categorical_crossentropy, 
                   metrics=['accuracy'])
         
-        modelckpit = keras.callbacks.ModelCheckpoint(model_save_path+'/ckpt/ckpt{epoch:02d}-{val_acc:.2f}.h5', 
+        modelckpit = keras.callbacks.ModelCheckpoint(model_save_path+'/ckpt/win_ckpt{epoch:02d}-{val_acc:.2f}.h5', 
                                                      monitor='val_acc',
                             save_best_only=False);
         ear_stop = keras.callbacks.EarlyStopping(monitor='val_acc',
                             min_delta=0.005,patience=8); 
-        his = c2_model.fit(train_sen1,train_label,
+        his = c2_model.fit(aft_train_sen,train_label,
                   batch_size=batch_size, epochs=epoch[0],
-                  validation_data = (test_sen1,test_label),
+                  validation_data = (aft_test_sen,test_label),
                   callbacks=[ear_stop,modelckpit]);
         print(his.history);
-        c2_model.save(model_save_path+'/class127_model.h5');
+        c2_model.save(model_save_path+'/class126_model.h5');
     his = c2_model.evaluate(test_sen1, test_label);
     print(his);
     res  = c2_model.predict(out_sen);
@@ -228,4 +239,7 @@ def run():
 if __name__ == '__main__':
     run();
 #     get_model_sp((1024,10,1));
+
+
+
     pass

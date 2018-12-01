@@ -81,7 +81,7 @@ def run():
 #     test_sen1 = np.array(test_set['sen2']);
 #     test_label = np.array(test_set['label']);
 
-    train_sen1 = regtoOne(train_sen1);
+#     train_sen1 = regtoOne(train_sen1);
 
     fig, axs = plt.subplots(2, 5)
     print(np.argmax(train_label));
@@ -109,26 +109,45 @@ def run2():
         train_sen1 = np.array(train_set['sen2'][idx]);
         train_label = np.array(train_set['label'][idx]);
         if train_label[tag] ==1:break;
-#     idx=2;
 
-#     test_sen1 = np.array(test_set['sen2']);
-#     test_label = np.array(test_set['label']);
 
-#     train_sen1 = regtoOne(train_sen1);
-#     train_sen1 = newReg(train_sen1);
     train_sen1 = train_sen1.reshape((-1,10))
-    np.random.shuffle(train_sen1);
-    win_size=16;
-    step=8;
-    start=0;end=0;i=0;
-    res=[];
-    while end<1024:
-        start=i*step;
-        end = min(win_size+start,32*32);
-        i+=1;
-        tag = np.mean(train_sen1[start:end,:],axis=0);
-        res.append(tag);
-    aft_train_sen = np.array(res);    
+#     train_sen1 = train_sen1 / np.mean(train_sen1);
+#     np.random.shuffle(train_sen1);
+    
+############## 离群分析 ###################    
+    
+    
+    v_mean = np.mean(train_sen1,axis=0,keepdims=True);
+    v_std = np.std(train_sen1,axis=0,keepdims=True);
+    v_rag = v_mean+2*v_std;
+    v_rag = np.concatenate([v_rag,v_mean-2*v_std],axis=0);
+    
+    print(v_mean);
+    print(v_std);
+    print(v_rag);
+    
+    aft_train_sen = train_sen1.copy();
+    for i in range(10):
+        tmp = aft_train_sen[:,i];
+        idxu = np.where(tmp>v_rag[0,i])
+        idxd = np.where(tmp<v_rag[1,i])
+        tmp[idxu]=v_mean[0,i];
+        tmp[idxd]=v_mean[0,i];
+        print(np.sum(tmp-aft_train_sen[:,i]));
+        aft_train_sen[:,i]=tmp;
+        
+#     win_size=16;
+#     step=8;
+#     start=0;end=0;i=0;
+#     res=[];
+#     while end<1024:
+#         start=i*step;
+#         end = min(win_size+start,32*32);
+#         i+=1;
+#         tag = np.mean(train_sen1[start:end,:],axis=0);
+#         res.append(tag);
+#     aft_train_sen = np.array(res);    
         
     print(aft_train_sen);
     fig, axs = plt.subplots(2, 1)

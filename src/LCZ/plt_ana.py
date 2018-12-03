@@ -113,7 +113,7 @@ def run2():
 
     train_sen1 = train_sen1.reshape((-1,10))
 #     train_sen1 = train_sen1 / np.mean(train_sen1);
-#     np.random.shuffle(train_sen1);
+    np.random.shuffle(train_sen1);
     
 ############## 离群分析 ###################    
     
